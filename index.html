@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta name="viewport"
+content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>𝐃𝐄𝐒𝐓𝐑𝐎𝐘 𝐋𝐀𝐔𝐍𝐂𝐇𝐄𝐑</title>
+<link rel="icon" type="image/png" href="https://img2.pic.in.th/6C2D3665-94A3-4743-8782-A20D14BC2B5C78b3be69cd62d1eb.png">
+<link rel="shortcut icon" href="https://img2.pic.in.th/6C2D3665-94A3-4743-8782-A20D14BC2B5C78b3be69cd62d1eb.png">
+<link rel="apple-touch-icon" href="https://img2.pic.in.th/6C2D3665-94A3-4743-8782-A20D14BC2B5C78b3be69cd62d1eb.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    height:100%;
+    background:#000000;
+    font-family:'Rajdhani', sans-serif;
+    overflow:hidden;
+  }
+  #phone {
+    position:relative;
+    width:100%;
+    max-width:420px;
+    height:100vh;
+    margin:0 auto;
+    overflow:hidden;
+    background:#030102;
+  }
+  canvas#bg {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+  }
+
+  /* diagonal hazard stripe texture, very faint, top and bottom */
+  .hazard-strip {
+    position:absolute;
+    left:0; right:0;
+    height:22px;
+    z-index:1;
+    opacity:0.5;
+    background:repeating-linear-gradient(
+      -45deg,
+      rgba(255,30,30,0.18) 0px, rgba(255,30,30,0.18) 8px,
+      transparent 8px, transparent 16px
+    );
+  }
+  .hazard-strip.top { top:0; }
+  .hazard-strip.bottom { bottom:0; }
+
+  .grid-overlay {
+    position:absolute;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    opacity:0.35;
+    background-image:
+      linear-gradient(rgba(255,40,40,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,40,40,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 75%);
+  }
+
+  .vignette {
+    position:absolute;
+    inset:0;
+    z-index:2;
+    pointer-events:none;
+    box-shadow: inset 0 0 20px 6px rgba(0,0,0,0.6), inset 0 0 160px 50px rgba(0,0,0,0.9);
+  }
+
+  .ui {
+    position:relative;
+    z-index:3;
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    padding:34px 18px 22px;
+  }
+
+  .header { text-align:center; margin-bottom:28px; position:relative; }
+  .logo-wrap { position:relative; display:inline-block; }
+  .logo {
+    position:relative;
+    display:block;
+    font-family:'Orbitron', sans-serif;
+    font-size:38px;
+    font-weight:900;
+    letter-spacing:4px;
+    background:linear-gradient(180deg, #ffffff 0%, #ffe8e6 20%, #ff8a80 45%, #ff2b2b 70%, #b30d0d 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:none;
+    filter:
+      drop-shadow(-1px 0 0 rgba(0,0,0,0.5))
+      drop-shadow(2px 2px 0 rgba(120,0,0,0.6))
+      drop-shadow(0 0 20px rgba(255,30,30,0.55))
+      drop-shadow(0 0 42px rgba(255,10,10,0.3));
+    transform:skewX(-3deg);
+  }
+  .logo-underline {
+    width:60px;
+    height:3px;
+    margin:10px auto 0;
+    background:linear-gradient(90deg, transparent, #ff2020, transparent);
+  }
+  .tagline {
+    font-family:'Rajdhani', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:#c98a86;
+    letter-spacing:5px;
+    margin-top:8px;
+  }
+
+  .card-list { display:flex; flex-direction:column; gap:13px; }
+  .card {
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background:linear-gradient(150deg, rgba(40,10,10,0.55), rgba(10,3,4,0.75));
+    border:1px solid rgba(255,50,50,0.22);
+    border-left:3px solid rgba(255,40,40,0.65);
+    border-radius:4px 14px 14px 4px;
+    padding:14px 15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+    transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .card:hover, .card:active {
+    transform:translateX(2px) scale(0.995);
+    border-left-color: rgba(255,70,70,0.95);
+    background:linear-gradient(150deg, rgba(55,12,12,0.65), rgba(14,4,5,0.8));
+  }
+  .icon-box {
+    position:relative;
+    width:56px; height:56px;
+    border-radius:12px;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.06), transparent 55%),
+      linear-gradient(160deg, #3a0d0d, #0e0303 80%);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    border:1px solid rgba(255,70,70,0.3);
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 16px rgba(255,30,30,0.18);
+  }
+  .icon-box svg { width:30px; height:30px; display:block; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+  .card-text { flex:1; min-width:0; }
+  .card-title {
+    font-family:'Rajdhani', sans-serif;
+    font-size:17px; font-weight:700; color:#fbeeed; letter-spacing:0.8px;
+  }
+  .card-subtitle { font-size:12px; font-weight:500; color:#b4837f; margin-top:2px; letter-spacing:0.3px; }
+
+  .mini-toggle {
+    position:relative;
+    width:46px;
+    height:26px;
+    border-radius:6px;
+    background:rgba(10,2,2,0.9);
+    border:1px solid rgba(255,80,80,0.32);
+    cursor:pointer;
+    flex-shrink:0;
+    overflow:hidden;
+    transition:background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .mini-knob {
+    position:absolute;
+    top:2px; left:2px;
+    width:20px; height:20px;
+    border-radius:4px;
+    background:linear-gradient(160deg,#e8e2de,#c9c0ba);
+    box-shadow:0 1px 3px rgba(0,0,0,0.5);
+    transition:transform 0.28s cubic-bezier(.4,1.6,.4,1), background 0.25s ease, box-shadow 0.25s ease;
+  }
+  .mini-toggle.on {
+    background:linear-gradient(160deg, rgba(210,20,20,0.95), rgba(90,6,6,0.95));
+    border-color:rgba(255,90,90,0.8);
+    box-shadow:0 0 14px 2px rgba(255,30,30,0.55), inset 0 0 6px rgba(255,60,60,0.3);
+  }
+  .mini-toggle.on .mini-knob {
+    transform:translateX(20px);
+    background:linear-gradient(160deg,#fff6f2,#ffd8ce);
+    box-shadow:0 0 8px 2px rgba(255,150,120,0.75);
+  }
+
+  .spacer { flex:1; }
+  
+  /* ปุ่มกดปุ่มใหญ่ START ด้านล่าง */
+  .start-btn {
+    position:relative;
+    overflow:hidden;
+    width:100%;
+    padding:18px;
+    border-radius:14px;
+    background:linear-gradient(180deg, #c51a1a, #4d0000);
+    border:1px solid #b41d1d;
+    color:#fff5f2;
+    font-family:'Orbitron', sans-serif;
+    font-size:17px;
+    font-weight:800;
+    letter-spacing:5px;
+    cursor:pointer;
+    box-shadow: 0 8px 24px rgba(200,20,20,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+    transition: transform 0.12s ease, background 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 5px;
+  }
+  .start-btn::before {
+    content:'';
+    position:absolute;
+    top:0; left:-60%;
+    width:40%; height:100%;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transform:skewX(-20deg);
+    animation: sweep 3s ease-in-out infinite;
+  }
+  @keyframes sweep {
+    0% { left:-60%; }
+    45%, 100% { left:130%; }
+  }
+  .start-btn:active {
+    transform:scale(0.96);
+    background:linear-gradient(180deg, #ff2020, #7a0505);
+  }
+  .start-btn.pulsing {
+    animation: btn-pulse 1.8s ease-in-out infinite;
+  }
+
+  .start-btn.on {
+    background:linear-gradient(180deg, #ff2020, #7a0505);
+    border-color:#ffb3ac;
+  }
+
+    /* เอฟเฟควงคลื่นน้ำกระจายเวลาคลิก (Ripple) */
+  .ripple {
+    position:absolute;
+    border-radius:50%;
+    background:rgba(255, 60, 60, 0.5);
+    transform:scale(0);
+    pointer-events:none;
+    animation: ripple-out 0.55s ease-out forwards;
+  }
+  @keyframes ripple-out {
+    to { transform:scale(3.2); opacity:0; }
+  }
+
+  .contact-section { margin-top:15px; }
+  .contact-label {
+    font-family:'Rajdhani', sans-serif;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:4px;
+    color:#8a6462;
+    text-align:center;
+    margin-bottom:10px;
+    position:relative;
+  }
+  .contact-label::before, .contact-label::after {
+    content:'';
+    position:absolute;
+    top:50%;
+    width:26%;
+    height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,60,60,0.4));
+  }
+  .contact-label::before { left:0; }
+  .contact-label::after { right:0; transform:scaleX(-1); }
+
+  /* --- Countdown splash / boot screen --- */
+  #splash {
+    position:absolute;
+    inset:0;
+    z-index:50;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:radial-gradient(ellipse at 50% 45%, #1a0404 0%, #050101 75%);
+    overflow:hidden;
+    transition:opacity 0.6s ease, visibility 0.6s ease;
+  }
+  #splash.hidden {
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+  }
+  .splash-glow-pulse {
+    position:absolute;
+    top:50%; left:50%;
+    width:280px; height:280px;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,30,30,0.35), transparent 70%);
+    animation: glow-breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes glow-breathe {
+    0%,100% { transform:translate(-50%,-50%) scale(0.85); opacity:0.6; }
+    50% { transform:translate(-50%,-50%) scale(1.15); opacity:1; }
+  }
+  .splash-ring {
+    position:relative;
+    width:170px;
+    height:170px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:28px;
+  }
+  .splash-ring svg { position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg); }
+  .splash-ring circle.track { stroke:rgba(255,50,50,0.15); }
+  .splash-ring circle.progress {
+    stroke:#ff2b2b;
+    stroke-linecap:round;
+    filter:drop-shadow(0 0 10px rgba(255,40,40,0.85));
+    transition:stroke-dashoffset 1s linear;
+  }
+  .splash-ring circle.outer-dash {
+    stroke:rgba(255,120,100,0.4);
+    stroke-dasharray:2 10;
+    animation: rotate-outer 6s linear infinite;
+    transform-origin:50% 50%;
+  }
+  @keyframes rotate-outer {
+    from { transform:rotate(-90deg); }
+    to { transform:rotate(270deg); }
+  }
+  #splashNumber {
+    position:relative;
+    font-family:'Orbitron', sans-serif;
+    font-size:58px;
+    font-weight:900;
+    color:#fff;
+    text-shadow:0 0 24px rgba(255,30,30,0.8), 0 0 50px rgba(255,10,10,0.4);
+  }
+  #splashNumber.punch {
+    animation: number-punch 0.4s cubic-bezier(.2,1.8,.4,1);
+  }
+  @keyframes number-punch {
+    0% { transform:scale(1.7); opacity:0; filter:blur(4px); }
+    60% { transform:scale(0.92); opacity:1; filter:blur(0); }
+    100% { transform:scale(1); }
+  }
+  .splash-particles {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+  }
+  .spark {
+    position:absolute;
+    width:4px; height:4px;
+    border-radius:50%;
+    background:#ff5b3d;
+    box-shadow:0 0 6px 2px rgba(255,80,50,0.8);
+    animation: spark-fly 0.7s ease-out forwards;
+  }
+  @keyframes spark-fly {
+    0% { transform:translate(0,0) scale(1); opacity:1; }
+    100% { transform:translate(var(--dx), var(--dy)) scale(0); opacity:0; }
+  }
+  #splashStatus {
+    font-family:'Rajdhani', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:4px;
+    color:#c98a86;
+    text-transform:uppercase;
+    min-height:20px;
+  }
+  #splashStatus::after {
+    content:'';
+    display:inline-block;
+    width:1ch;
+    animation: dots-cycle 1.2s steps(4) infinite;
+    overflow:hidden;
+    vertical-align:bottom;
+  }
+  @keyframes dots-cycle {
+    0% { content:''; }
+  }
+  #splashWelcome {
+    font-family:'Orbitron', sans-serif;
+    font-size:22px;
+    font-weight:900;
+    letter-spacing:2px;
+    text-align:center;
+    line-height:1.6;
+  }
+  #splashWelcome .line1 {
+    display:block;
+    font-size:15px;
+    color:#e8b8b4;
+    letter-spacing:4px;
+    margin-bottom:8px;
+  }
+  #splashWelcome .line1 span {
+    display:inline-block;
+    opacity:0;
+    transform:translateY(10px);
+    animation: letter-rise 0.4s ease forwards;
+  }
+  #splashWelcome .line2 {
+    display:block;
+    font-size:30px;
+    background:linear-gradient(180deg, #ffffff 0%, #ff8a80 50%, #b30d0d 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    filter:drop-shadow(0 0 18px rgba(255,30,30,0.6));
+    opacity:0;
+    transform:scale(0.8);
+    animation: title-slam 0.55s cubic-bezier(.2,1.6,.3,1) forwards;
+    animation-delay:0.5s;
+  }
+  @keyframes letter-rise {
+    to { opacity:1; transform:translateY(0); }
+  }
+  @keyframes title-slam {
+    0% { opacity:0; transform:scale(2.2); filter:blur(6px); }
+    60% { opacity:1; transform:scale(0.94); filter:blur(0); }
+    100% { opacity:1; transform:scale(1); }
+  }
+
+  .contact-section {
+    margin-top:20px;
+  }
+  .contact-label {
+    font-family:'Rajdhani', sans-serif;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:4px;
+    color:#8a6462;
+    text-align:center;
+    margin-bottom:10px;
+    position:relative;
+  }
+  .contact-label::before, .contact-label::after {
+    content:'';
+    position:absolute;
+    top:50%;
+    width:26%;
+    height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,60,60,0.4));
+  }
+  .contact-label::before { left:0; }
+  .contact-label::after { right:0; transform:scaleX(-1); }
+
+  /* --- Cyber CLICK badge (replaces toggle on Discord/TikTok) --- */
+  .cyber-click {
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 14px;
+    flex-shrink:0;
+    cursor:pointer;
+    overflow:hidden;
+    border-radius:8px;
+    background:linear-gradient(135deg, rgba(6,16,20,0.92), rgba(4,3,6,0.95));
+    animation: cyber-glow-breathe 2.4s ease-in-out infinite;
+    transition:transform 0.15s ease;
+  }
+  .cyber-click:active { transform:scale(0.92); }
+  .cyber-click::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    padding:1.5px;
+    background:conic-gradient(from 0deg, #610028, #ff2929, #ff6b6b, #ff2e2e, #610000);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+    animation:cyber-spin 3.2s linear infinite;  
+    pointer-events:none;
+  }
+  .cyber-click::after {
+    content:'';
+    position:absolute;
+    top:0; left:-60%;
+    width:40%; height:100%;
+    background:linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.4), transparent);
+    transform:skewX(-20deg);
+    animation:cyber-sweep 2.6s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes cyber-spin { to { transform:rotate(360deg); } }
+  @keyframes cyber-sweep {
+    0% { left:-60%; }
+    50%, 100% { left:130%; }
+  }
+  @keyframes cyber-glow-breathe {
+    0%,100% { box-shadow:0 0 0 1px rgba(255,50,50,0.55); }
+    50% { box-shadow:0 0 0 1px rgba(255,50,50,0.55); }
+  }
+  .cyber-click-icon {
+    width:13px; height:13px;
+    flex-shrink:0;
+    filter:drop-shadow(0 0 3px rgba(223, 0, 0, 0.85));
+  }
+  .cyber-click-text {
+    font-family:'Orbitron', sans-serif; 
+    font-size:10.5px;
+    font-weight:800;
+    letter-spacing:2px;
+    background:linear-gradient(90deg, #ffffff, #808080);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    white-space:nowrap;
+  }
+
+  .corner-brackets span {
+    position:absolute;
+    width:16px; height:16px;
+    border-color:   rgba(255, 255, 255, 0.55);
+    z-index:4;
+    pointer-events:none;
+  }
+  .corner-brackets .tl { top:14px; left:14px; border-top:2px solid; border-left:2px solid; }
+  .corner-brackets .tr { top:14px; right:14px; border-top:2px solid; border-right:2px solid; }
+  .corner-brackets .bl { bottom:14px; left:14px; border-bottom:2px solid; border-left:2px solid; }
+  .corner-brackets .br { bottom:14px; right:14px; border-bottom:2px solid; border-right:2px solid; }
+</style>
+</head>
+<body>
+
+<div id="phone">
+  <div id="splash">
+    <div class="splash-glow-pulse"></div>
+    <div class="splash-particles" id="splashParticles"></div>
+    <div class="splash-ring">
+      <svg viewBox="0 0 170 170">
+        <circle class="track" cx="85" cy="85" r="70" fill="none" stroke-width="6"/>
+        <circle class="outer-dash" cx="85" cy="85" r="80" fill="none" stroke-width="1.5"/>
+        <circle id="splashCircle" class="progress" cx="85" cy="85" r="70" fill="none" stroke-width="6"
+          stroke-dasharray="439.8" stroke-dashoffset="0"/>
+      </svg>
+      <div id="splashNumber">5</div>
+    </div>
+    <div id="splashStatus">Booting up</div>
+    <div id="splashWelcome">
+      <span class="line1" id="splashLine1"></span>
+      <span class="line2">DESTROY</span>
+    </div>
+  </div>
+
+  <canvas id="bg"></canvas>
+  <div class="hazard-strip top"></div>
+  <div class="hazard-strip bottom"></div>
+  <div class="grid-overlay"></div>
+  <div class="vignette"></div>
+  <div class="corner-brackets">
+    <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+  </div>
+
+  <div class="ui">
+    <div class="header">
+      <div class="logo-wrap">
+        <div class="logo">DESTROY</div>
+      </div>
+      <div class="logo-underline"></div>
+      <div class="tagline">LAUNCHER</div>
+    <div class="contact-section">
+      <div class="contact-label">MENU FUNCTION</div>
+<div class="card-list">
+      
+      <div class="card">
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="2.5" fill="#ff4d4d"/>
+            <circle cx="12" cy="12" r="7.5" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="8 3.5" fill="none"/>
+            <path d="M12 2V5.5M12 18.5V22M2 12H5.5M18.5 12H22" stroke="#ff4d4d" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">ยิงตัวโดนหัว</div>
+          <div class="card-subtitle">BODY HEADSHOT</div>
+        </div>
+        <div class="mini-toggle" data-card-toggle><div class="mini-knob"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C10.8 4.5 9.5 7 9.5 10.5V17C9.5 18.1 10.4 19 11.5 19H12.5C13.6 19 14.5 18.1 14.5 17V10.5C14.5 7 13.2 4.5 12 2Z" fill="#ff4d4d"/>
+            <path d="M9 20H15V22H9V20Z" fill="#7a0e0e"/>
+            <line x1="12" y1="8" x2="12" y2="15" stroke="#000000" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">กระสุนตรง</div>
+          <div class="card-subtitle">STRAIGHT BULLET</div>
+        </div>
+        <div class="mini-toggle" data-card-toggle><div class="mini-knob"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L4 5V11C4 16.5 7.4 21.7 12 23C16.6 21.7 20 16.5 20 11V5L12 2Z" stroke="#ff4d4d" stroke-width="2" fill="none"/>
+            <path d="M12 4.5L5.5 6.8V11C5.5 15.3 8.3 19.5 12 20.7C15.7 19.5 18.5 15.3 18.5 11V6.8L12 4.5Z" fill="#7a0e0e" opacity="0.6"/>
+            <path d="M12 8V15M9.5 11.5H14.5" stroke="#ffb3ac" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">ป้องกันโดนติดดำ</div>
+          <div class="card-subtitle">SYSTEM PROTECTION</div>
+        </div>
+        <div class="mini-toggle" data-card-toggle><div class="mini-knob"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2.5L3.5 6.3V12C3.5 17.2 7.1 22 12 23.3C16.9 22 20.5 17.2 20.5 12V6.3L12 2.5Z" stroke="#ff4d4d" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M12 6L18 8.7V12C18 15.4 15.4 18.6 12 19.7C8.6 18.6 6 15.4 6 12V8.7L12 6Z" stroke="#ffb3ac" stroke-width="1.2" stroke-dasharray="3 2"/>
+            <polygon points="12,9 14.5,11 14.5,14 12,15.5 9.5,14 9.5,11" fill="#ff4d4d" opacity="0.8"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-title">ป้องกันโดนแบนจากเกม</div>
+          <div class="card-subtitle">ANTI-BAN</div>
+        </div>
+        <div class="mini-toggle" data-card-toggle><div class="mini-knob"></div></div>
+      </div>
+
+    <div class="spacer"></div>
+ 
+
+    <button class="start-btn pulsing" id="startBtn">START</button>
+
+    <div class="contact-section">
+      <div class="contact-label">CONTACT DEV</div>
+      <div class="card-list">
+        <div class="card" onclick="window.open('https://discord.gg/KJUuCEsSR2', '_blank')">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#FFFFFF" d="M20.3 5.34a17.2 17.2 0 0 0-4.3-1.34c-.19.34-.4.8-.55 1.16a15.9 15.9 0 0 0-4.9 0 8.7 8.7 0 0 0-.56-1.16 17.1 17.1 0 0 0-4.3 1.34C3.2 9.05 2.5 12.65 2.83 16.2a17.3 17.3 0 0 0 5.27 2.68c.43-.58.8-1.2 1.13-1.86-.62-.24-1.21-.53-1.77-.87.15-.11.29-.22.43-.34a12.3 12.3 0 0 0 10.22 0c.14.12.28.23.43.34-.56.34-1.15.63-1.77.87.32.66.7 1.28 1.13 1.86a17.2 17.2 0 0 0 5.27-2.68c.4-4.13-.66-7.7-2.87-10.86ZM9.5 14c-.8 0-1.45-.75-1.45-1.68 0-.92.63-1.68 1.45-1.68.82 0 1.47.76 1.45 1.68 0 .93-.63 1.68-1.45 1.68Zm5 0c-.8 0-1.45-.75-1.45-1.68 0-.92.63-1.68 1.45-1.68.82 0 1.47.76 1.45 1.68 0 .93-.63 1.68-1.45 1.68Z"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title">Discord</div>
+            <div class="card-subtitle">Join the community</div>
+          </div>
+          <div class="cyber-click" data-cyber-click>
+            <svg class="cyber-click-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 17L17 7M17 #d20000 7V15" stroke="#d20000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="cyber-click-text">CLICK</span>
+          </div>
+        </div>
+
+        <div class="card" onclick="window.open('https://www.tiktok.com/@destroy.shop1?lang=en', '_blank')">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#FFFFFF" d="M16.6 5.82a4.28 4.28 0 0 1-3.15-1.38 4.3 4.3 0 0 1-1.11-2.65h-3.2v13.44a2.59 2.59 0 1 1-2.13-2.55v-3.24a5.83 5.83 0 1 0 4.95 5.77V9.4a7.24 7.24 0 0 0 4.64 1.67V7.86a4.3 4.3 0 0 1-1.94-.5 4.1 4.1 0 0 1-.06-1.54Z"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title">TikTok</div>
+            <div class="card-subtitle">Follow for updates</div>
+          </div>
+          <div class="cyber-click" data-cyber-click>
+            <svg class="cyber-click-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 17L17 7M17 #d20000 7V15" stroke="#d20000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="cyber-click-text">CLICK</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+const phone = document.getElementById('phone');
+
+let w, h;
+function resize(){
+  w = phone.clientWidth;
+  h = phone.clientHeight;
+  canvas.width = w;
+  canvas.height = h;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// --- Layered depth background: parallax fog bands + pulsing core + shard particles + embers ---
+const fogBands = Array.from({ length: 5 }).map((_, i) => ({
+  offset: Math.random() * 1000,
+  speed: 0.03 + i * 0.018,
+  amp: 30 + i * 22,
+  yBase: 0.15 + i * 0.16,
+  alpha: 0.035 + i * 0.018,
+  hue: i % 2 === 0 ? '180,10,10' : '90,4,6',
+}));
+
+const shards = Array.from({ length: 14 }).map(() => ({
+  x: Math.random() * 400,
+  y: Math.random() * 700,
+  size: 6 + Math.random() * 14,
+  rot: Math.random() * Math.PI,
+  rotSpeed: (Math.random() - 0.5) * 0.01,
+  speed: 0.05 + Math.random() * 0.12,
+  alpha: 0.04 + Math.random() * 0.08,
+}));
+
+const embers = Array.from({ length: 50 }).map(() => ({
+  x: Math.random() * 400,
+  y: Math.random() * 700,
+  r: 0.6 + Math.random() * 2.4,
+  speed: 0.15 + Math.random() * 0.6,
+  drift: (Math.random() - 0.5) * 0.3,
+  alpha: 0.2 + Math.random() * 0.65,
+}));
+
+let t = 0;
+function draw(){
+  t += 0.01;
+  ctx.clearRect(0, 0, w, h);
+
+  // deep base gradient with pulsing crimson core
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.85);
+  const g = ctx.createRadialGradient(w * 0.5, h * 0.55, h * 0.02, w * 0.5, h * 0.55, h * 0.9);
+  g.addColorStop(0, `rgba(${70 + 30 * pulse | 0},6,6,1)`);
+  g.addColorStop(0.4, 'rgba(30,4,4,1)');
+  g.addColorStop(0.75, 'rgba(10,2,2,1)');
+  g.addColorStop(1, 'rgba(1,0,1,1)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  // parallax fog bands
+  fogBands.forEach(band => {
+    ctx.beginPath();
+    const yBase = h * band.yBase;
+    ctx.moveTo(0, yBase);
+    for (let x = 0; x <= w; x += 18) {
+      const y = yBase + Math.sin((x + t * 260 * band.speed + band.offset) * 0.012) * band.amp;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${band.hue},${band.alpha})`;
+    ctx.fill();
+  });
+
+  // drifting angular shards (broken-glass motif, very subtle)
+  shards.forEach(s => {
+    s.y -= s.speed;
+    s.rot += s.rotSpeed;
+    if (s.y < -20) { s.y = h + 20; s.x = Math.random() * w; }
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rot);
+    ctx.beginPath();
+    ctx.moveTo(0, -s.size/2);
+    ctx.lineTo(s.size/3, 0);
+    ctx.lineTo(0, s.size/2);
+    ctx.lineTo(-s.size/3, 0);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(255,60,60,${s.alpha})`;
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // rising embers with flicker
+  embers.forEach(e => {
+    e.y -= e.speed;
+    e.x += e.drift + Math.sin(t * 2 + e.y * 0.05) * 0.25;
+    if (e.y < -10) { e.y = h + 10; e.x = Math.random() * w; }
+    const flicker = 0.5 + 0.5 * Math.sin(t * 4 + e.x);
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,${110 + 70 * flicker | 0},60,${e.alpha * flicker})`;
+    ctx.fill();
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+const clickSound = new Audio("click.mp3");
+clickSound.preload="auto";
+function playToggleSound(){clickSound.currentTime=0;clickSound.play();}
+
+function spawnRipple(container) {
+  const ripple = document.createElement('div');
+  const size = Math.max(container.offsetWidth, container.offsetHeight) * 1.4;
+  ripple.className = 'ripple';
+  ripple.style.width = size + 'px';
+  ripple.style.height = size + 'px';
+  ripple.style.left = (container.offsetWidth / 2 - size / 2) + 'px';
+  ripple.style.top = (container.offsetHeight / 2 - size / 2) + 'px';
+  container.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove());
+}
+
+// --- Main START button ---
+const startBtn = document.getElementById('startBtn');
+
+startBtn.addEventListener('click', function () {
+    startBtn.classList.add('on');
+    spawnRipple(startBtn);
+    playToggleSound();
+
+    setTimeout(() => {
+        startBtn.classList.remove('on');
+
+        // เปิด Potatso (ถ้ารองรับ URL Scheme)
+        window.location.href = 'potatso://';
+    }, 250);
+});
+
+// --- Per-card mini toggles (Install / Clear) ---
+document.querySelectorAll('[data-card-toggle]').forEach(el => {
+  let on = false;
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+        on = !on;
+    el.classList.toggle('on', on);
+    spawnRipple(el);
+    playToggleSound();
+  });
+});
+
+// --- Cyber CLICK badges (Discord / TikTok) — feedback only; click bubbles up to the card's link ---
+document.querySelectorAll('[data-cyber-click]').forEach(el => {
+  el.addEventListener('click', () => {
+        spawnRipple(el);
+    playToggleSound();
+  });
+});
+// --- Countdown splash screen: 4,3,2,1 then welcome message, then reveal launcher ---
+(function () {
+  const splash = document.getElementById('splash');
+  const numberEl = document.getElementById('splashNumber');
+  const statusEl = document.getElementById('splashStatus');
+  const welcomeEl = document.getElementById('splashWelcome');
+  const line1El = document.getElementById('splashLine1');
+  const circle = document.getElementById('splashCircle');
+  const ring = document.querySelector('.splash-ring');
+  const particleLayer = document.getElementById('splashParticles');
+
+  const CIRC = 439.8; // 2 * PI * r(70)
+  let count = 4;
+
+  // build the "ยินดีต้อนรับสู่" line as individually-staggered spans
+  const welcomeText = 'W E L C O M E';
+  line1El.innerHTML = welcomeText
+    .split('')
+    .map((ch, i) => `<span style="animation-delay:${0.05 * i}s">${ch}</span>`)
+    .join('');
+
+  function spawnSparks() {
+    const centerX = ring.offsetLeft + ring.offsetWidth / 2;
+    const centerY = ring.offsetTop + ring.offsetHeight / 2;
+    for (let i = 0; i < 10; i++) {
+      const spark = document.createElement('div');
+      spark.className = 'spark';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 50;
+      spark.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      spark.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      spark.style.left = centerX + 'px';
+      spark.style.top = centerY + 'px';
+      particleLayer.appendChild(spark);
+      spark.addEventListener('animationend', () => spark.remove());
+    }
+  }
+
+  function tick() {
+    numberEl.textContent = count;
+    numberEl.classList.remove('punch');
+    void numberEl.offsetWidth;
+    numberEl.classList.add('punch');
+    circle.style.strokeDashoffset = CIRC - (CIRC / 5) * (4 - count);
+    spawnSparks();
+
+    if (count <= 0) {
+      // countdown finished — reveal happens automatically via CSS keyframes on children
+      ring.style.display = 'none';
+      statusEl.style.display = 'none';
+
+      setTimeout(() => {
+        splash.classList.add('hidden');
+      }, 1800);
+      return;
+    }
+
+    count--;
+    setTimeout(tick, 1000);
+  }
+
+  statusEl.textContent = 'Booting up';
+  setTimeout(tick, 400);
+})();
+</script>
+
+</body>
+</html>
